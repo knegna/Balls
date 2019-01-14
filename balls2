@@ -1,0 +1,296 @@
+<html>
+<head>
+	<title>Canvas & Mootools</title>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mootools/1.6.0/mootools-core.js"></script>
+	<script type="text/javascript">
+		var canvas, ctx, balls, idTimer,d_n;
+		idTimer = 0;
+		d_n = 0;
+		TShape = new Class({
+			initialize: function(pX,pY) {
+				this.posX = pX;
+				this.posY = pY;
+				this.color = 'rgb('+Math.floor(Math.random()*256)+','
+				+Math.floor(Math.random()*256)+','+Math.floor(Math.random()*256)+')';
+				this.vX = 0;
+				this.vY = 0;
+				this.direct = 0;
+			},
+			posX: 0,
+			posY: 0,
+			direct: 0,	
+			vX: 0,
+			vY: 0,
+			move: function(vX, vY){
+				this.posX += vX;
+				this.posY += vY;
+			},
+			
+			draw : function(ctx){				
+				
+			}						
+
+		});
+
+		TBall = new Class({
+			Extends: TShape,
+			initialize: function(pX,pY) {
+				this.parent(pX, pY); //позиция шарика по X
+				this.color = 'rgb('+Math.floor(Math.random()*256)+','
+				+Math.floor(Math.random()*256)+','+Math.floor(Math.random()*256)+')';
+				// радиус шарика, случайное число от 5 до 30
+				this.rBall = 5+Math.random()*25;
+			},
+			color:"rgb(0,0,0)",
+			rBall: 0,
+			colorBall: function(ctx){
+				// формируем градиентную заливку для шарика
+				with (this){
+					var gradient = ctx.createRadialGradient(posX+rBall/4,
+					posY-rBall/6, rBall/8, posX, posY, rBall);
+					gradient.addColorStop(0, '#fff');
+					gradient.addColorStop(0.85, color);
+					return gradient;
+				}
+			},
+			draw : function(ctx){
+				// рисуем шарик на canvas
+				with (this){
+					ctx.fillStyle = colorBall(ctx);
+					ctx.beginPath();
+					ctx.arc(posX, posY, rBall, 0, 2*Math.PI, false);
+					ctx.closePath();
+					ctx.fill();
+				}
+			},
+		});
+
+		TTriangle = new Class({
+			Extends: TShape,
+			initialize: function(pX,pY) {
+				this.parent(pX, pY); //позиция шарика по X
+				this.color = 'rgb('+Math.floor(Math.random()*256)+','
+				+Math.floor(Math.random()*256)+','+Math.floor(Math.random()*256)+')';
+				// радиус шарика, случайное число от 5 до 30
+				this.ss = 20+Math.random()*40;
+			},
+			color:"rgb(0,0,0)",
+			ss: 0,
+			draw: function(ctx){
+				with (this){
+					ctx.fillstyle = color;
+					ctx.beginPath();
+					ctx.moveTo(posX,posY);
+				    ctx.lineTo(posX+ss,posY+ss);
+				    ctx.lineTo(posX,posY-ss);
+				    ctx.fill();
+				}
+			}
+		})
+
+		function drawBack(ctx,col1,col2,w,h){
+			// закрашиваем канвас градиентным фоном
+			ctx.save();
+			var g = ctx.createLinearGradient(0,0,0,h);
+			g.addColorStop(1,col1);
+			g.addColorStop(0,col2);
+			ctx.fillStyle = g;
+			ctx.fillRect(0,0,w,h);
+			ctx.restore();
+		}
+		// инициализация работы
+		function init(){
+			canvas = document.getElementById('canvas');
+			if (canvas.getContext){
+				ctx = canvas.getContext('2d');
+				//рисуем фон
+				drawBack(ctx,'#202020','#aaa',canvas.width,canvas.height);
+				//создаем 10 шариков, заноси их в массив и выводим на canvas
+				balls = [];
+				for (var i = 1; i<=10;i++){
+					var item = new TBall(10+Math.random()*(canvas.width-30),
+					10+Math.random()*(canvas.height-30));
+					item.draw(ctx);
+					balls.push(item);
+				}
+			}
+		}
+
+		TSquare = new Class({
+			Extends: TShape,
+			initialize: function(pX,pY) {
+				this.parent(pX, pY); //позиция шарика по X
+				this.color = 'rgb('+Math.floor(Math.random()*256)+','
+				+Math.floor(Math.random()*256)+','+Math.floor(Math.random()*256)+')';
+				// радиус шарика, случайное число от 5 до 30
+				this.size = 5+Math.random()*25;
+			},
+			color:"rgb(0,0,0)",
+			size: 0,
+			draw : function(ctx){
+				with (this){
+					ctx.fillStyle = color;
+					ctx.beginPath();
+					ctx.fillRect(posX, posY, size, size);
+					ctx.closePath();
+					ctx.fill();
+				}
+			}
+
+		})
+
+		function randInt(min, max)
+		{
+			return Math.floor(Math.random()* (max - min + 1)) + min;
+		}
+		// создаем новый шарик по щелчку мыши, добавляем его в массив шариков и рисуем его
+		function goInput(event){
+			var item;
+			var x = event.clientX;
+			var y = event.clientY;
+			var t = randInt(1,3);
+			switch(t){
+				case 1: 
+				{
+					item = new TBall(x,y);
+				}
+				break;
+				case 2: 
+				{
+					item = new TSquare(x,y);
+				}
+				break;
+				case 3:
+				{
+					item = new TTriangle(x,y);
+				}
+			}
+			item.draw(ctx);
+			balls.push(item);
+		}
+		function moveBall(){
+			//реализация движения шариков, находящихся в массиве balls
+			drawBack(ctx,'#202020','#aaa',canvas.width,canvas.height);
+			for (var i = 0; i < balls.length;i++){
+				let b = balls[i];
+				if (d_n == 6)
+				{
+					b.direct = randInt(1, 4);
+				}
+				switch (b.direct) {
+					case 1: //вверх
+					{
+						b.move(Math.random()*4-2, Math.random()*2-4);
+					}
+					break;
+					case 2: //вниз
+					{
+						b.move(Math.random()*4-2, -(Math.random()*2-4));
+					}
+					break;
+					case 3: //влево
+					{
+						b.move(Math.random()*2-4, Math.random()*4-2);
+					}
+					break;
+					case 4: //вправо
+					{
+						b.move(-(Math.random()*2-4), Math.random()*4-2);
+					}
+					break;
+
+				}
+				b.draw(ctx);
+			}
+		}
+		function move(direction)
+		{
+
+			switch (direction)
+			{
+
+				
+				case 'up':
+				{
+					for (var i = 0; i < balls.length; i++)
+					{
+						balls[i].direct = 1;
+					}
+					d_n = 1;
+				
+				}
+				break;
+				case 'down':
+				{
+					for (var i = 0; i < balls.length; i++)
+					{
+						balls[i].direct = 2;
+					}
+					d_n = 2;
+				
+				}
+				break;
+				case 'left':
+				{
+					for (var i = 0; i < balls.length; i++)
+					{
+						balls[i].direct = 3;
+					}
+					d_n = 3;
+				
+				}
+				break;
+				case 'random':
+				{
+					for (var i = 0; i < balls.length; i++)
+					{
+						balls[i].direct = randInt(1, 4);
+					}
+					d_n = 5;
+				}
+				break;
+				case 'right':
+				{
+					for (var i = 0; i < balls.length; i++)
+					{
+						balls[i].direct = 4;
+					}
+					d_n = 4;
+					
+				}
+				break;
+				case 'chaos':
+				{	
+					
+					for (var i = 0; i < balls.length; i++)
+					{
+						balls[i].direct = randInt(1, 4);;
+					}
+					d_n = 6;
+					
+				}
+			}
+			if (idTimer == 0)
+			{
+				idTimer = setInterval('moveBall();', 50);
+			}			
+		}
+	</script>
+	<style type="text/css">
+		canvas { border: 1px solid blue; }
+	</style>
+</head>
+<body onload="init();">
+	<canvas id="canvas" width="600" height="400" onclick="goInput(event);">
+	</canvas>
+	<form>
+		<input type = "button" value = "Вверх" onclick="move('up')">
+		<input type = "button" value = "Вниз" onclick="move('down')">
+		<input type = "button" value = "Влево" onclick="move('left')">
+		<input type = "button" value = "Вправо" onclick="move('right')">
+		<input type = "button" value = "Рандом" onclick="move('random')">
+		<input type = "button" value = "Каос" onclick="move('chaos')">
+		<input type = "button" value = "Стоп" onclick="clearInterval(idTimer);">
+	</form>
+</body>
+</html>                                  
